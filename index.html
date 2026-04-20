@@ -2,84 +2,30 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aplikasi Askep Digital</title>
 
 <style>
-body {
-    font-family: Arial;
-    background:#eef2f3;
-    padding:20px;
-}
-
-.container {
-    max-width:800px;
-    margin:auto;
-    background:white;
-    padding:20px;
-    border-radius:10px;
-}
-
+body { font-family: Arial; background:#eef2f3; padding:20px; }
+.container { max-width:800px; margin:auto; background:white; padding:20px; border-radius:10px; }
 h2 { text-align:center; }
-
-input, textarea, select {
-    width:100%;
-    padding:8px;
-    margin:5px 0 15px;
-}
-
-button {
-    padding:10px;
-    background:#2e86c1;
-    color:white;
-    border:none;
-    cursor:pointer;
-    margin-right:5px;
-}
-
-.hasil {
-    margin-top:20px;
-    background:#eaf2f8;
-    padding:15px;
-    border-radius:8px;
-}
-
-#kop {
-    display:none;
-    text-align:center;
-    margin-bottom:20px;
-}
-
-hr {
-    border:1px solid black;
-}
+input, textarea, select { width:100%; padding:8px; margin:5px 0 15px; }
+button { padding:10px; background:#2e86c1; color:white; border:none; cursor:pointer; margin-right:5px; }
+.hasil { margin-top:20px; background:#eaf2f8; padding:15px; border-radius:8px; }
+#kop { display:none; text-align:center; margin-bottom:20px; }
+hr { border:1px solid black; }
 
 @media print {
     body * { visibility:hidden; }
-
-    #kop, #output, #kop *, #output * {
-        visibility:visible;
-    }
-
-    #kop {
-        display:block;
-        position:absolute;
-        top:0;
-        width:100%;
-    }
-
-    #output {
-        position:absolute;
-        top:140px;
-        width:100%;
-    }
+    #kop, #output, #kop *, #output * { visibility:visible; }
+    #kop { display:block; position:absolute; top:0; width:100%; }
+    #output { position:absolute; top:140px; width:100%; }
 }
 </style>
 </head>
 
 <body>
-
 <div class="container">
-
 <h2>🩺 Aplikasi Pengkajian Keperawatan</h2>
 
 <label>Nama Pasien</label>
@@ -116,82 +62,90 @@ hr {
 
 <div id="kop">
     <h3>LAPORAN ASUHAN KEPERAWATAN</h3>
-    <p><b>NURSE LAURENS IKBIS</b></p>
-   <p><b>2411411029</b></p>
+    <p><b>Nurse Lauren</b></p>
     <hr>
 </div>
 
 <div class="hasil" id="output"></div>
-
 </div>
 
 <script>
 
-const NAMA_MHS = "NURSE LAURENS IKBIS";
-const NIM_MHS = "2411411029";
-
-/* INTERPRETASI TTV */
+/* =========================
+   INTERPRETASI TTV (AMAN)
+========================= */
 function interpretasiTD(td) {
-    if (td.includes("/")) {
-        let [s, d] = td.split("/").map(Number);
-        if (s < 90 || d < 60) return "Hipotensi";
-        if (s >= 140 || d >= 90) return "Hipertensi";
-        return "Normal";
-    }
-    return "Format tidak valid";
+    if (!td || !td.includes("/")) return "Tidak diketahui";
+    let [s, d] = td.split("/").map(Number);
+    if (isNaN(s) || isNaN(d)) return "Tidak valid";
+    if (s < 90 || d < 60) return "Hipotensi";
+    if (s >= 140 || d >= 90) return "Hipertensi";
+    return "Normal";
 }
 
 function interpretasiNadi(nadi) {
+    if (isNaN(nadi)) return "Tidak diketahui";
     if (nadi < 60) return "Bradikardia";
     if (nadi > 100) return "Takikardia";
     return "Normal";
 }
 
 function interpretasiSuhu(suhu) {
+    if (isNaN(suhu)) return "Tidak diketahui";
     if (suhu < 36) return "Hipotermia";
     if (suhu <= 37.5) return "Normal";
     if (suhu <= 38.5) return "Demam";
     return "Hipertermia";
 }
 
-/* DIAGNOSA */
+/* =========================
+   DIAGNOSA
+========================= */
 function diagnosaOtomatis(suhu, nadi, keluhan) {
     let hasil = [];
-    keluhan = keluhan.toLowerCase();
+    keluhan = (keluhan || "").toLowerCase();
 
-    if (suhu > 37.5) hasil.push("D.0076 - Hipertermia");
-    if (nadi > 100) hasil.push("D.0007 - Penurunan Curah Jantung");
+    if (!isNaN(suhu) && suhu > 37.5) hasil.push("D.0076 - Hipertermia");
+    if (!isNaN(nadi) && nadi > 100) hasil.push("D.0007 - Penurunan Curah Jantung");
     if (keluhan.includes("sesak")) hasil.push("D.0001 - Gangguan Pola Napas");
     if (keluhan.includes("nyeri")) hasil.push("D.0077 - Nyeri Akut");
 
     if (hasil.length === 0) hasil.push("Tidak ada diagnosa spesifik");
-
     return hasil;
 }
 
-/* INTERVENSI */
+/* =========================
+   INTERVENSI
+========================= */
 function intervensi(diagnosaList) {
     let hasil = [];
-
     diagnosaList.forEach(d => {
         if (d.includes("Hipertermia")) hasil.push("Monitor suhu, kompres hangat");
         if (d.includes("Curah Jantung")) hasil.push("Monitor nadi & tekanan darah");
         if (d.includes("Pola Napas")) hasil.push("Posisikan semi fowler");
         if (d.includes("Nyeri")) hasil.push("Kaji skala nyeri");
     });
-
-    return hasil.join("<br>");
+    return hasil.join("<br>") || "-";
 }
 
+/* =========================
+   PROSES UTAMA (FIX ERROR)
+========================= */
 function proses() {
-    let nama = document.getElementById("nama").value;
+    let nama = document.getElementById("nama").value.trim();
     let umur = document.getElementById("umur").value;
     let jk = document.getElementById("jk").value;
-    let keluhan = document.getElementById("keluhan").value;
-    let riwayat = document.getElementById("riwayat").value;
-    let td = document.getElementById("td").value;
+    let keluhan = document.getElementById("keluhan").value.trim();
+    let riwayat = document.getElementById("riwayat").value.trim();
+    let td = document.getElementById("td").value.trim();
     let suhu = parseFloat(document.getElementById("suhu").value);
     let nadi = parseFloat(document.getElementById("nadi").value);
+
+    // VALIDASI WAJIB
+    if (!nama || !keluhan || isNaN(suhu) || isNaN(nadi)) {
+        alert("Mohon isi minimal: Nama, Keluhan, Suhu, dan Nadi!");
+        return;
+    }
 
     let ketTD = interpretasiTD(td);
     let ketNadi = interpretasiNadi(nadi);
@@ -203,13 +157,13 @@ function proses() {
     let hasil = `
     <h3>Hasil Askep</h3>
     <b>Nama Pasien:</b> ${nama}<br>
-    <b>Umur:</b> ${umur} tahun<br>
+    <b>Umur:</b> ${umur || "-"} tahun<br>
     <b>JK:</b> ${jk}<br><br>
 
     <b>Keluhan:</b> ${keluhan}<br>
-    <b>Riwayat:</b> ${riwayat}<br><br>
+    <b>Riwayat:</b> ${riwayat || "-"}<br><br>
 
-    <b>TD:</b> ${td} (${ketTD})<br>
+    <b>TD:</b> ${td || "-"} (${ketTD})<br>
     <b>Suhu:</b> ${suhu}°C (${ketSuhu})<br>
     <b>Nadi:</b> ${nadi} x/menit (${ketNadi})<br><br>
 
@@ -218,9 +172,9 @@ function proses() {
 
     <b>SOAP:</b><br>
     S: ${keluhan}<br>
-    O: TD ${td}, Suhu ${suhu}°C, Nadi ${nadi}<br>
+    O: TD ${td || "-"}, Suhu ${suhu}°C, Nadi ${nadi}<br>
     A: ${diag[0]}<br>
-    P: ${inter.split("<br>")[0]}
+    P: ${inter.split("<br>")[0] || "-"}
     `;
 
     document.getElementById("output").innerHTML = hasil;
@@ -232,11 +186,9 @@ function cetak() { window.print(); }
 function downloadDoc() {
     let kop = document.getElementById("kop").innerHTML;
     let isi = document.getElementById("output").innerHTML;
-
     let html = `<html><body>${kop}${isi}</body></html>`;
 
     let blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-
     let url = URL.createObjectURL(blob);
     let a = document.createElement("a");
     a.href = url;
@@ -252,7 +204,6 @@ function resetData() {
 window.onload = function() {
     let data = localStorage.getItem("askep");
     if (data) document.getElementById("output").innerHTML = data;
-
 }
 
 </script>
