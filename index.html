@@ -193,9 +193,6 @@ function proses() {
     let suhu = parseFloat(document.getElementById("suhu").value);
     let nadi = parseFloat(document.getElementById("nadi").value);
 
-    document.getElementById("namaUser").innerText = NAMA_MHS;
-    document.getElementById("nimUser").innerText = NIM_MHS;
-
     let ketTD = interpretasiTD(td);
     let ketNadi = interpretasiNadi(nadi);
     let ketSuhu = interpretasiSuhu(suhu);
@@ -256,8 +253,6 @@ window.onload = function() {
     let data = localStorage.getItem("askep");
     if (data) document.getElementById("output").innerHTML = data;
 
-    document.getElementById("namaUser").innerText = NAMA_MHS;
-    document.getElementById("nimUser").innerText = NIM_MHS;
 }
 
 </script>
