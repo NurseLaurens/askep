@@ -46,7 +46,7 @@ hr { border:1px solid black; }
 <label>Riwayat Penyakit</label>
 <textarea id="riwayat"></textarea>
 
-<label>Tekanan Darah (contoh: 120/80)</label>
+<label>Tekanan Darah</label>
 <input type="text" id="td">
 
 <label>Suhu (°C)</label>
@@ -62,7 +62,8 @@ hr { border:1px solid black; }
 
 <div id="kop">
     <h3>LAPORAN ASUHAN KEPERAWATAN</h3>
-    <p><b>Nurse Lauren</b></p>
+    <p><b>NURSE LAURENS IKBIS</b></p>
+    <p><b>2411411029</b></p>
     <hr>
 </div>
 
@@ -71,9 +72,6 @@ hr { border:1px solid black; }
 
 <script>
 
-/* =========================
-   INTERPRETASI TTV (AMAN)
-========================= */
 function interpretasiTD(td) {
     if (!td || !td.includes("/")) return "Tidak diketahui";
     let [s, d] = td.split("/").map(Number);
@@ -98,62 +96,64 @@ function interpretasiSuhu(suhu) {
     return "Hipertermia";
 }
 
-/* =========================
-   DIAGNOSA
-========================= */
+// =========================
+// DIAGNOSA BERBASIS KLINIS
+// =========================
 function diagnosaOtomatis(suhu, nadi, keluhan) {
-    let hasil = [];
-    let skor = {};
+    let utama = null;
+    let pendukung = [];
     keluhan = (keluhan || "").toLowerCase();
 
-    function tambah(diagnosa, nilai) {
-        if (!skor[diagnosa]) skor[diagnosa] = 0;
-        skor[diagnosa] += nilai;
+    // Diagnosa utama dari keluhan
+    if (keluhan.includes("bak") || keluhan.includes("kencing")) {
+        if (keluhan.includes("nyeri")) {
+            utama = "D.XXXX - Gangguan Eliminasi Urine (ISK)";
+        } else {
+            utama = "D.XXXX - Gangguan Eliminasi Urine";
+        }
+    }
+    else if (keluhan.includes("sesak")) {
+        utama = "D.0001 - Gangguan Pola Napas";
+    }
+    else if (keluhan.includes("nyeri")) {
+        utama = "D.0077 - Nyeri Akut";
     }
 
-    // ===== RULE ISK =====
-    if (keluhan.includes("bak") || keluhan.includes("kencing")) tambah("D.XXXX - Gangguan Eliminasi Urine (ISK)", 2);
-    if (keluhan.includes("nyeri") && keluhan.includes("bak")) tambah("D.XXXX - Gangguan Eliminasi Urine (ISK)", 3);
-    if (!isNaN(suhu) && suhu > 37.5) tambah("D.XXXX - Gangguan Eliminasi Urine (ISK)", 1);
+    if (!utama) utama = "Tidak ada diagnosa spesifik";
 
-    // ===== RULE HIPERTERMIA =====
-    if (!isNaN(suhu) && suhu > 37.5) tambah("D.0076 - Hipertermia", 2);
+    // TTV sebagai pendukung
+    if (!isNaN(suhu) && suhu > 37.5)
+        pendukung.push("D.0076 - Hipertermia");
 
-    // ===== RULE CURAH JANTUNG =====
-    if (!isNaN(nadi) && nadi > 100) tambah("D.0007 - Penurunan Curah Jantung", 2);
+    if (!isNaN(nadi) && nadi > 100)
+        pendukung.push("D.0007 - Respon Takikardia");
 
-    // ===== RULE POLA NAPAS =====
-    if (keluhan.includes("sesak")) tambah("D.0001 - Gangguan Pola Napas", 3);
-
-    // ===== RULE NYERI UMUM =====
-    if (keluhan.includes("nyeri") && !keluhan.includes("bak")) tambah("D.0077 - Nyeri Akut", 2);
-
-    // ===== KONVERSI SKOR KE HASIL =====
-    let sorted = Object.entries(skor).sort((a, b) => b[1] - a[1]);
-
-    if (sorted.length === 0) return ["Tidak ada diagnosa spesifik"];
-
-    // Ambil 2 diagnosa teratas
-    return sorted.slice(0, 2).map(item => item[0]);
+    return [utama, ...pendukung];
 }
 
-/* =========================
-   INTERVENSI
-========================= */
 function intervensi(diagnosaList) {
     let hasil = [];
+
     diagnosaList.forEach(d => {
-        if (d.includes("Hipertermia")) hasil.push("Monitor suhu, kompres hangat");
-        if (d.includes("Curah Jantung")) hasil.push("Monitor nadi & tekanan darah");
-        if (d.includes("Pola Napas")) hasil.push("Posisikan semi fowler");
-        if (d.includes("Nyeri")) hasil.push("Kaji skala nyeri");
+        if (d.includes("Eliminasi Urine"))
+            hasil.push("Monitor pola BAK, edukasi kebersihan, kolaborasi antibiotik");
+
+        if (d.includes("Hipertermia"))
+            hasil.push("Monitor suhu, kompres hangat");
+
+        if (d.includes("Takikardia"))
+            hasil.push("Monitor nadi dan istirahat");
+
+        if (d.includes("Pola Napas"))
+            hasil.push("Posisikan semi fowler");
+
+        if (d.includes("Nyeri"))
+            hasil.push("Kaji skala nyeri");
     });
+
     return hasil.join("<br>") || "-";
 }
 
-/* =========================
-   PROSES UTAMA (FIX ERROR)
-========================= */
 function proses() {
     let nama = document.getElementById("nama").value.trim();
     let umur = document.getElementById("umur").value;
@@ -164,9 +164,8 @@ function proses() {
     let suhu = parseFloat(document.getElementById("suhu").value);
     let nadi = parseFloat(document.getElementById("nadi").value);
 
-    // VALIDASI WAJIB
-    if (!nama || !keluhan || isNaN(suhu) || isNaN(nadi)) {
-        alert("Mohon isi minimal: Nama, Keluhan, Suhu, dan Nadi!");
+    if (!nama || !keluhan) {
+        alert("Nama dan Keluhan wajib diisi!");
         return;
     }
 
@@ -187,21 +186,20 @@ function proses() {
     <b>Riwayat:</b> ${riwayat || "-"}<br><br>
 
     <b>TD:</b> ${td || "-"} (${ketTD})<br>
-    <b>Suhu:</b> ${suhu}°C (${ketSuhu})<br>
-    <b>Nadi:</b> ${nadi} x/menit (${ketNadi})<br><br>
+    <b>Suhu:</b> ${suhu || "-"}°C (${ketSuhu})<br>
+    <b>Nadi:</b> ${nadi || "-"} (${ketNadi})<br><br>
 
-    <b>Diagnosa (SDKI):</b><br>${diag.join("<br>")}<br><br>
-    <b>Intervensi (SIKI):</b><br>${inter}<br><br>
+    <b>Diagnosa:</b><br>${diag.join("<br>")}<br><br>
+    <b>Intervensi:</b><br>${inter}<br><br>
 
     <b>SOAP:</b><br>
     S: ${keluhan}<br>
-    O: TD ${td || "-"}, Suhu ${suhu}°C, Nadi ${nadi}<br>
+    O: TD ${td || "-"}, Suhu ${suhu || "-"}, Nadi ${nadi || "-"}<br>
     A: ${diag[0]}<br>
     P: ${inter.split("<br>")[0] || "-"}
     `;
 
     document.getElementById("output").innerHTML = hasil;
-    localStorage.setItem("askep", hasil);
 }
 
 function cetak() { window.print(); }
@@ -224,12 +222,6 @@ function resetData() {
     document.querySelectorAll("input, textarea").forEach(e => e.value = "");
 }
 
-window.onload = function() {
-    let data = localStorage.getItem("askep");
-    if (data) document.getElementById("output").innerHTML = data;
-}
-
 </script>
-
 </body>
 </html>
