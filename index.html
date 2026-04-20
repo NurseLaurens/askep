@@ -62,8 +62,7 @@ hr { border:1px solid black; }
 
 <div id="kop">
     <h3>LAPORAN ASUHAN KEPERAWATAN</h3>
-    <p><b>NURSE LAURENS IKBIS</b></p>
-    <p><b>2411411029</b></p>
+    <p><b>Nurse Lauren</b></p>
     <hr>
 </div>
 
@@ -104,15 +103,38 @@ function interpretasiSuhu(suhu) {
 ========================= */
 function diagnosaOtomatis(suhu, nadi, keluhan) {
     let hasil = [];
+    let skor = {};
     keluhan = (keluhan || "").toLowerCase();
 
-    if (!isNaN(suhu) && suhu > 37.5) hasil.push("D.0076 - Hipertermia");
-    if (!isNaN(nadi) && nadi > 100) hasil.push("D.0007 - Penurunan Curah Jantung");
-    if (keluhan.includes("sesak")) hasil.push("D.0001 - Gangguan Pola Napas");
-    if (keluhan.includes("nyeri")) hasil.push("D.0077 - Nyeri Akut");
+    function tambah(diagnosa, nilai) {
+        if (!skor[diagnosa]) skor[diagnosa] = 0;
+        skor[diagnosa] += nilai;
+    }
 
-    if (hasil.length === 0) hasil.push("Tidak ada diagnosa spesifik");
-    return hasil;
+    // ===== RULE ISK =====
+    if (keluhan.includes("bak") || keluhan.includes("kencing")) tambah("D.XXXX - Gangguan Eliminasi Urine (ISK)", 2);
+    if (keluhan.includes("nyeri") && keluhan.includes("bak")) tambah("D.XXXX - Gangguan Eliminasi Urine (ISK)", 3);
+    if (!isNaN(suhu) && suhu > 37.5) tambah("D.XXXX - Gangguan Eliminasi Urine (ISK)", 1);
+
+    // ===== RULE HIPERTERMIA =====
+    if (!isNaN(suhu) && suhu > 37.5) tambah("D.0076 - Hipertermia", 2);
+
+    // ===== RULE CURAH JANTUNG =====
+    if (!isNaN(nadi) && nadi > 100) tambah("D.0007 - Penurunan Curah Jantung", 2);
+
+    // ===== RULE POLA NAPAS =====
+    if (keluhan.includes("sesak")) tambah("D.0001 - Gangguan Pola Napas", 3);
+
+    // ===== RULE NYERI UMUM =====
+    if (keluhan.includes("nyeri") && !keluhan.includes("bak")) tambah("D.0077 - Nyeri Akut", 2);
+
+    // ===== KONVERSI SKOR KE HASIL =====
+    let sorted = Object.entries(skor).sort((a, b) => b[1] - a[1]);
+
+    if (sorted.length === 0) return ["Tidak ada diagnosa spesifik"];
+
+    // Ambil 2 diagnosa teratas
+    return sorted.slice(0, 2).map(item => item[0]);
 }
 
 /* =========================
